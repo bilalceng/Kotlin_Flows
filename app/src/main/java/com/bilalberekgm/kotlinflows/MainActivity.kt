@@ -20,11 +20,11 @@ class MainActivity : ComponentActivity() {
         setContent {
             KotlinFlowsTheme {
                 val viewModel = viewModel<FlowsViewModel>()
-                val time  = viewModel.countDownFlow.collectAsState(initial = 10)
+                val user  = viewModel.flatMapFlowData.collectAsState(initial = "")
 
                 Box(modifier = Modifier.fillMaxSize()){
                     Text(
-                        text = time.value.toString(),
+                        text = user.value.toString(),
                         fontSize = 30.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.align(Alignment.Center)
