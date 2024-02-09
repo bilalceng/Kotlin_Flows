@@ -6,18 +6,17 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.buffer
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.flatMapConcat
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
 
 data class Post(
     var name: String = "",
@@ -27,8 +26,8 @@ data class Post(
 
 class FlowsViewModel():ViewModel() {
 
-   private var _flatMapFlowData = MutableStateFlow("")
-    val flatMapFlowData:StateFlow<String> = _flatMapFlowData.asStateFlow()
+    private var _flatMapFlowData = MutableStateFlow(0)
+    val flatMapFlowData: StateFlow<Int> = _flatMapFlowData.asStateFlow()
 
     val countDownFlow: Flow<Int> =
         flow {
@@ -47,7 +46,7 @@ class FlowsViewModel():ViewModel() {
 
         }.flowOn(Dispatchers.IO)
 
-    //<-----------------------------Flow terminal operators----------------------->
+        //<-----------------------------Flow terminal operators----------------------->
     /**
      *   init {
      *         collectFlow()
@@ -88,8 +87,7 @@ class FlowsViewModel():ViewModel() {
      *      * }
      *      */
      */
-
-    //<--------------------------FlatMapMerge---------------------------->
+        //<--------------------------FlatMapMerge---------------------------->
     /**
      *  val remoteRepo: Map<Int ,String> = mapOf(
      *         Pair(1,"bilal"),
@@ -131,7 +129,7 @@ class FlowsViewModel():ViewModel() {
      *
      *
      */
-
+        //<---------------------------------------------FlatMapMerge()------------------------------------->
     /**
      *
      *     val remoteRepo: Map<Int ,String> = mapOf(
@@ -215,7 +213,7 @@ class FlowsViewModel():ViewModel() {
      *         }
      *     }
      */
-    //<----------------------------Buffer()--------------------------->
+        //<----------------------------Buffer()--------------------------->
     /**
      *   init {
      *         giveOrder()
@@ -243,34 +241,81 @@ class FlowsViewModel():ViewModel() {
      *         }
      *
      */
+        //<--------------------------Conflate()------------------------------------------->
+    /**
+     *     init {
+     *         giveOrder()
+     *     }
+     *     // With conflate operator we collect  first emition and take last emitted value.
+     *     private  fun giveOrder(){
+     *         val flow = flow{
+     *
+     *             emit("appetizer")
+     *             emit("MainDish")
+     *             emit("dessert")
+     *             emit("kebab")
+     *             emit("soup")
+     *             emit("tea")
+     *         }
+     *         //with buffer we  all values and  collect them at the same time .
+     *         // this behaviour happen cause of the
+     *         // different coroutine is used before and after  buffer() operator
+     *         viewModelScope.launch {
+     *             flow.onEach {
+     *                 println("Flow: $it delivered")
+     *             }.conflate()
+     *                 .collect{
+     *                     println("Flow: now eating $it")
+     *
+     *                     println("Flow: finished eating $it")
+     *                 }
+     *         }
+     *     }
+     *
+     */
 
-    init {
-        giveOrder()
+    fun increment() {
+        _flatMapFlowData.value += 1
     }
-    // With conflate operator we collect  first emition and take last emitted value.
-    private  fun giveOrder(){
-        val flow = flow{
-
-            emit("appetizer")
-            emit("MainDish")
-            emit("dessert")
-            emit("kebab")
-            emit("soup")
-            emit("tea")
-        }
-        //with buffer we  all values and  collect them at the same time .
-        // this behaviour happen cause of the
-        // different coroutine is used before and after  buffer() operator
-        viewModelScope.launch {
-            flow.onEach {
-                println("Flow: $it delivered")
-            }.conflate()
-                .collect{
-                    println("Flow: now eating $it")
-
-                    println("Flow: finished eating $it")
-                }
-        }
-    }
+        //<-----------------------------------SharedIn()------------------------------------------------>
+    /**
+     *     private fun getFlowWithMultipleCollectors(): Flow<Int> {
+     *         return flow {
+     *             (1..10).forEach {
+     *                 delay(1000L)
+     *                 emit(it)
+     *
+     *             }
+     *         }
+     *     }
+     *
+     *     init {
+     *         getFlowWithMultipleCollectors()
+     *         collector()
+     *     }
+     *
+     *     private fun collector() {
+     *         val flow = getFlowWithMultipleCollectors().shareIn(viewModelScope, SharingStarted.Eagerly , replay = 1)
+     *         viewModelScope.launch {
+     *             viewModelScope.launch {
+     *                 withTimeout(5000L){
+     *                     flow.collect {
+     *                         delay(500L)
+     *                         println("First FLOW: collected value is: $it  ")
+     *                     }
+     *                 }
+     *             }.join()
+     *
+     *             println("go to second coroutine")
+     *
+     *             viewModelScope.launch {
+     *                 flow.collect {
+     *                     delay(500L)
+     *                     println("Second FLOW: collected value is: $it  ")
+     *                 }
+     *             }
+     *         }
+     *     }
+     */
 
 }
