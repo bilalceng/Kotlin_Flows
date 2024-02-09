@@ -62,6 +62,22 @@ class MainActivity : ComponentActivity() {
         flow:Flow<T>, collect:suspend (T) -> Unit
     ){
         lifecycleScope.launch {
+            /**
+             * Warning: Never collect a flow from the UI directly from launch or
+             * the launchIn extension function if the UI needs to be updated.
+             * These functions process events even when the view is not visible.
+             * This behavior can lead to app crashes.
+             * To avoid that, use the repeatOnLifecycle API as shown follow.
+             */
+
+            /**
+             * LiveData.observe() automatically unregisters
+             * the consumer when the view goes to the STOPPED state,
+             * whereas collecting from a StateFlow or any other flow
+             * does not stop collecting automatically.
+             * To achieve the same behavior,
+             * you need to collect the flow from a Lifecycle.repeatOnLifecycle block.
+             */
             repeatOnLifecycle(Lifecycle.State.STARTED){
                 flow.collectLatest(collect)
             }

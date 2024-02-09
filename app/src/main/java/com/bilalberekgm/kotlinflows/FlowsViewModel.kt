@@ -3,19 +3,24 @@ package com.bilalberekgm.kotlinflows
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.shareIn
+import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 
 data class Post(
@@ -317,5 +322,43 @@ class FlowsViewModel():ViewModel() {
      *         }
      *     }
      */
+
+
+    fun sampleChannel() = runBlocking{
+        val channel = Channel<Int>()
+
+        // Coroutine 1: Send values to the channel
+        val sender = launch {
+            repeat(5) {
+                delay(100)
+                channel.send(it)
+                println("Sent $it")
+            }
+        }
+
+        // Coroutine 2: Receive values from the channel
+        val receiver = launch {
+            repeat(5) {
+                delay(200)
+                val value = channel.receive()
+                println("Received $value")
+            }
+        }
+
+        // Coroutine 3: Perform some other work
+        val otherCoroutine = launch {
+            delay(500)
+            println("Cancelling sender coroutine")
+            sender.cancel() // Cancelling the sender coroutine
+        }
+
+        // Wait for all coroutines to finish
+        listOf(sender, receiver, otherCoroutine).joinAll()
+        println("All coroutines have finished")
+    }
+    init {
+        sampleChannel()
+    }
+
 
 }
