@@ -1,7 +1,12 @@
 package com.bilalberekgm.kotlinflows
 
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.bilalberekgm.kotlinflows.model.Post
+import com.bilalberekgm.kotlinflows.model.ProfileState
+import com.bilalberekgm.kotlinflows.model.User
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
@@ -10,24 +15,24 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.shareIn
+import kotlinx.coroutines.flow.zip
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 
-data class Post(
-    var name: String = "",
-    var surname: String = "",
-    var postId: String
-)
 
 class FlowsViewModel():ViewModel() {
 
@@ -322,43 +327,65 @@ class FlowsViewModel():ViewModel() {
      *         }
      *     }
      */
+    var numberString = mutableStateOf("")
+    private val isAuthenticated = MutableStateFlow(true)
+    private val user = MutableStateFlow<User?>(null)
+    private val posts = MutableStateFlow(emptyList<Post>())
 
+    private val _profileState = MutableStateFlow<ProfileState?>(null)
+    val profileState = _profileState.asStateFlow()
 
-    fun sampleChannel() = runBlocking{
-        val channel = Channel<Int>()
+    private val flow1 = (1..15).asFlow().onEach { delay(1000L) }
+    private val flow2 = (1..5).asFlow().onEach { delay(10000L) }
 
-        // Coroutine 1: Send values to the channel
-        val sender = launch {
-            repeat(5) {
-                delay(100)
-                channel.send(it)
-                println("Sent $it")
-            }
-        }
-
-        // Coroutine 2: Receive values from the channel
-        val receiver = launch {
-            repeat(5) {
-                delay(200)
-                val value = channel.receive()
-                println("Received $value")
-            }
-        }
-
-        // Coroutine 3: Perform some other work
-        val otherCoroutine = launch {
-            delay(500)
-            println("Cancelling sender coroutine")
-            sender.cancel() // Cancelling the sender coroutine
-        }
-
-        // Wait for all coroutines to finish
-        listOf(sender, receiver, otherCoroutine).joinAll()
-        println("All coroutines have finished")
-    }
-    init {
-        sampleChannel()
-    }
-
+    /**
+     *    init {
+     *         user.combine(posts){ user , posts ->
+     *            _profileState.value = profileState.value?.copy(
+     *                profilePicUrl = user?.profilePicUrl,
+     *                userName = user?.userName,
+     *                description = user?.description,
+     *                post = posts
+     *            )
+     *         }.launchIn(viewModelScope)
+     *     }
+     *
+     */
+        //<--------------------------Combine()------------------------------------>
+    /**
+     *        isAuthenticated.combine(user){ isAuthenticated,user ->
+     *             if (isAuthenticated) user else null
+     *         //Combine operator function is used when two more flows needs to be combined and
+     *         // when one of the flows that have combined is emit something it is triggered.
+     *         }.combine(posts){ user , posts ->
+     *             user?.let {
+     *                     _profileState.value = profileState.value?.copy(
+     *                         profilePicUrl = user.profilePicUrl,
+     *                         userName = user.userName,
+     *                         description = user.description,
+     *                         post = posts
+     *                     )
+     *             }
+     *         }.launchIn(viewModelScope)
+     */
+        //<---------------------------------------Zip()----------------------------------->
+    /**
+     *          //Zip is uses to combine flows also but it is only works when two
+     *          zipped flows execute at the same time.
+     *         flow1.zip(flow2){ number1, number2 ->
+     *             numberString.value += "($number1 , $number2)"
+     *         }.launchIn(viewModelScope)
+     */
+        //<--------------------------------------merge()----------------------------->
+    /**
+     *     init {
+     *         //the merge function emmit and collect all the
+     *         // flows that injected its constructor without any condition.
+     *         merge(flow1, flow2).onEach {number ->
+     *             numberString.value += number.toString()
+     *         }
+     *     }
+     *
+     */
 
 }

@@ -6,7 +6,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
@@ -45,13 +44,11 @@ class MainActivity : ComponentActivity() {
                 val count  = viewModel.flatMapFlowData.collectAsState(initial = "")
 
                 Box(modifier = Modifier.fillMaxSize()){
-                   Button(
-                       modifier = Modifier.align(Alignment.Center),
-                       onClick = { viewModel.increment() }
+                    Text(
+                        text = viewModel.numberString.value,
+                        modifier = Modifier.align(Alignment.Center)
 
-                   ) {
-                        Text(text = "counter is: ${count.value}")
-                   }
+                    )
                 }
 
             }
